@@ -1,4 +1,4 @@
-use crate::ast::{BinOp, Expression, Statement};
+use crate::ast::{BinOp, Expression, Statement, Ident};
 use peg;
 
 peg::parser! {
@@ -38,8 +38,8 @@ peg::parser! {
         pub rule number() -> Expression
             = n:$(['0'..='9']+) { Expression::Number(n.parse().unwrap()) }
 
-        pub rule ident() -> String
-            = id:$(['A'..='Z' | 'a'..='z']['A'..='Z' | 'a'..='z' | '0'..='9' | '_' ]*) { id.into() }
+        pub rule ident() -> Ident
+            = id:$(['A'..='Z' | 'a'..='z']['A'..='Z' | 'a'..='z' | '0'..='9' | '_' ]*) { Ident(id.into()) }
     }
 }
 
@@ -112,26 +112,26 @@ mod tests {
     }
     #[test]
     fn test_parse_ident() {
-        assert_eq!(tip_parser::ident("x"), Ok("x".to_string()));
-        assert_eq!(tip_parser::ident("y"), Ok("y".to_string()));
-        assert_eq!(tip_parser::ident("z"), Ok("z".to_string()));
-        assert_eq!(tip_parser::ident("xyz"), Ok("xyz".to_string()));
-        assert_eq!(tip_parser::ident("abc123"), Ok("abc123".to_string()));
-        assert_eq!(tip_parser::ident("abc_123"), Ok("abc_123".to_string()));
+        assert_eq!(tip_parser::ident("x"), Ok(Ident("x".to_string())));
+        assert_eq!(tip_parser::ident("y"), Ok(Ident("y".to_string())));
+        assert_eq!(tip_parser::ident("z"), Ok(Ident("z".to_string())));
+        assert_eq!(tip_parser::ident("xyz"), Ok(Ident("xyz".to_string())));
+        assert_eq!(tip_parser::ident("abc123"), Ok(Ident("abc123".to_string())));
+        assert_eq!(tip_parser::ident("abc_123"), Ok(Ident("abc_123".to_string())));
     }
 
     #[test]
     fn test_parse_var_decl() {
         assert_eq!(
             tip_parser::statement("var x;"),
-            Ok(Statement::VarDecl(vec!["x".to_string()]))
+            Ok(Statement::VarDecl(vec![Ident("x".to_string())]))
         );
         assert_eq!(
             tip_parser::statement("var x, y, z;"),
             Ok(Statement::VarDecl(
                 vec!["x", "y", "z"]
                     .into_iter()
-                    .map(|s| s.to_string())
+                    .map(|s| Ident(s.to_string()))
                     .collect()
             ))
         );
@@ -140,7 +140,7 @@ mod tests {
             Ok(Statement::VarDecl(
                 vec!["x", "y", "z"]
                     .into_iter()
-                    .map(|s| s.to_string())
+                    .map(|s| Ident(s.to_string()))
                     .collect()
             ))
         );
@@ -149,7 +149,7 @@ mod tests {
             Ok(Statement::VarDecl(
                 vec!["a_complex_name", "y", "result123"]
                     .into_iter()
-                    .map(|s| s.to_string())
+                    .map(|s| Ident(s.to_string()))
                     .collect()
             ))
         );
