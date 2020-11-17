@@ -1,4 +1,4 @@
-use crate::ast::{BinOp, Expression, Statement, Ident};
+use crate::ast::{BinOp, Expression, Ident, Statement, StatementList};
 use peg;
 
 peg::parser! {
@@ -9,6 +9,9 @@ peg::parser! {
         rule ws() = [' ' | '\n' | '\t']+
         rule _() = ws()*
 
+        rule statement_list() -> StatementList
+            = stmt:(_ s:statement() _ { s })+ { stmt }
+
         rule statement_contents() -> Statement
             = "var" ws() first:ident() rest:("," _ id:ident() { id })* {
                 let mut result = vec![first];
@@ -17,9 +20,18 @@ peg::parser! {
             }
             / "break" { Statement::Break }
             / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
+            / i:ident() "=" e:expression() { Statement::Assign(i, e) }
 
         pub rule statement() -> Statement
             = s:statement_contents() ";" { s }
+            / "while" _ "(" _ cond: expression() _ ")" _ "{" _ then:statement_list()? _ "}" { Statement::While { cond, then }}
+            / "while" _ "(" _ cond: expression() _ ")" _ then: statement()? { Statement::While { cond, then: then.map(|t| vec![t]) }}
+            / "if" _ "(" _ cond:expression() _")" _ "{" _ then:statement_list()? _ "}" otherwise:(_ "else" _ "{" _ s:statement_list()? _ "}" { s.unwrap_or(vec![]) })? {
+                Statement::If { cond, then, otherwise }
+            }
+            / "if" _ "(" _ cond:expression() _")" _ then:(t:statement()? { t.map(|t| vec![t]) }) _ otherwise:(_ "else" _ s:statement()? { s.map(|s| vec![s] ).unwrap_or(vec![]) })? {
+                Statement::If { cond, then, otherwise }
+            }
 
         pub rule expression() -> Expression
             = precedence! {
@@ -119,7 +131,10 @@ mod tests {
         assert_eq!(tip_parser::ident("z"), Ok(Ident("z".to_string())));
         assert_eq!(tip_parser::ident("xyz"), Ok(Ident("xyz".to_string())));
         assert_eq!(tip_parser::ident("abc123"), Ok(Ident("abc123".to_string())));
-        assert_eq!(tip_parser::ident("abc_123"), Ok(Ident("abc_123".to_string())));
+        assert_eq!(
+            tip_parser::ident("abc_123"),
+            Ok(Ident("abc_123".to_string()))
+        );
     }
 
     #[test]
@@ -164,7 +179,88 @@ mod tests {
 
     #[test]
     fn test_return() {
-        assert_eq!(tip_parser::statement("return;"), Ok(Statement::Return(None)));
-        assert_eq!(tip_parser::statement("return 123;"), Ok(Statement::Return(Some(Expression::Number(123)))));
+        assert_eq!(
+            tip_parser::statement("return;"),
+            Ok(Statement::Return(None))
+        );
+        assert_eq!(
+            tip_parser::statement("return 123;"),
+            Ok(Statement::Return(Some(Expression::Number(123))))
+        );
+    }
+
+    #[test]
+    fn test_if() {
+        assert_eq!(
+            tip_parser::statement("if (1) { } else { }"),
+            Ok(Statement::If {
+                cond: Expression::Number(1),
+                then: None,
+                otherwise: Some(vec![])
+            })
+        );
+        assert_eq!(
+            tip_parser::statement("if (1) { var x; } else { var y; }"),
+            Ok(Statement::If {
+                cond: Expression::Number(1),
+                then: Some(vec![Statement::VarDecl(vec![Ident("x".to_string())])]),
+                otherwise: Some(vec![Statement::VarDecl(vec![Ident("y".to_string())])]),
+            })
+        );
+        assert_eq!(
+            tip_parser::statement("if (1) { var x; var y; } else { var a; var b; }"),
+            Ok(Statement::If {
+                cond: Expression::Number(1),
+                then: Some(vec![
+                    Statement::VarDecl(vec![Ident("x".to_string())]),
+                    Statement::VarDecl(vec![Ident("y".to_string())])
+                ]),
+                otherwise: Some(vec![
+                    Statement::VarDecl(vec![Ident("a".to_string())]),
+                    Statement::VarDecl(vec![Ident("b".to_string())])
+                ]),
+            })
+        );
+        assert!(tip_parser::statement("if (1) var x; else var y;").is_ok());
+        assert_eq!(
+            tip_parser::statement("if (1) if (2) var x; else var y; else var z;"),
+            Ok(Statement::If {
+                cond: Expression::Number(1),
+                then: Some(vec![Statement::If {
+                    cond: Expression::Number(2),
+                    then: Some(vec![Statement::VarDecl(vec![Ident("x".to_string())])]),
+                    otherwise: Some(vec![Statement::VarDecl(vec![Ident("y".to_string())])]),
+                }]),
+                otherwise: Some(vec![Statement::VarDecl(vec![Ident("z".to_string())])]),
+            })
+        );
+    }
+
+    #[test]
+    fn test_while() {
+        assert_eq!(
+            tip_parser::statement("while (1) { var x; }"),
+            Ok(Statement::While {
+                cond: Expression::Number(1),
+                then: Some(vec![Statement::VarDecl(vec![Ident("x".to_string())])])
+            })
+        );
+        assert_eq!(
+            tip_parser::statement("while (1) { var x; var y; }"),
+            Ok(Statement::While {
+                cond: Expression::Number(1),
+                then: Some(vec![
+                    Statement::VarDecl(vec![Ident("x".to_string())]),
+                    Statement::VarDecl(vec![Ident("y".to_string())])
+                ],)
+            })
+        );
+        assert_eq!(
+            tip_parser::statement("while (1) var x;"),
+            Ok(Statement::While {
+                cond: Expression::Number(1),
+                then: Some(vec![Statement::VarDecl(vec![Ident("x".to_string())])])
+            })
+        );
     }
 }

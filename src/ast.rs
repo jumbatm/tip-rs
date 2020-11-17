@@ -1,3 +1,4 @@
+pub type StatementList = Vec<Statement>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ident(pub String);
@@ -21,6 +22,16 @@ pub enum Expression {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     VarDecl(Vec<Ident>), // TODO: Intern strings?
+    Assign(Ident, Expression),
+    If {
+        cond: Expression,
+        then: Option<StatementList>,
+        otherwise: Option<StatementList>,
+    },
+    While {
+        cond: Expression,
+        then: Option<StatementList>,
+    },
     Break,
-    Return(Option<Expression>)
+    Return(Option<Expression>),
 }
