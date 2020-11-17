@@ -15,6 +15,8 @@ peg::parser! {
                 result.extend(rest);
                 Statement::VarDecl(result)
             }
+            / "break" { Statement::Break }
+            / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
 
         pub rule statement() -> Statement
             = s:statement_contents() ";" { s }
@@ -153,5 +155,16 @@ mod tests {
                     .collect()
             ))
         );
+    }
+
+    #[test]
+    fn test_break() {
+        assert_eq!(tip_parser::statement("break;"), Ok(Statement::Break));
+    }
+
+    #[test]
+    fn test_return() {
+        assert_eq!(tip_parser::statement("return;"), Ok(Statement::Return(None)));
+        assert_eq!(tip_parser::statement("return 123;"), Ok(Statement::Return(Some(Expression::Number(123)))));
     }
 }
