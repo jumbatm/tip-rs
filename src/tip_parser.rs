@@ -5,20 +5,16 @@ peg::parser! {
     grammar tip_parser() for str {
         rule _() = [' ' | '\n' | '\t' ]*
         pub rule expression() -> Expression
-            = sum()
-            / "input" { Expression::Input }
+            = precedence! {
+                l:@ _ "+" _ r:(@)  { Expression::BinaryExpression(BinOp::Plus , Box::new(l), Box::new(r)) }
+                l:@ _ "-" _ r:(@)  { Expression::BinaryExpression(BinOp::Minus , Box::new(l), Box::new(r)) }
+                --
+                l:@ _ "*" _ r:(@)  { Expression::BinaryExpression(BinOp::Times , Box::new(l), Box::new(r)) }
+                l:@ _ "/" _ r:(@)  { Expression::BinaryExpression(BinOp::Divide , Box::new(l), Box::new(r)) }
+                --
+                a:atom() { a }
 
-        // FIXME: Replace with precedence! block.
-        rule sum() -> Expression
-            = l:product() _ "+" _ r:sum() { Expression::BinaryExpression(BinOp::Plus , Box::new(l), Box::new(r)) }
-            / l:product() _ "-" _ r:sum() { Expression::BinaryExpression(BinOp::Minus, Box::new(l), Box::new(r)) }
-            / product()
-
-        rule product() -> Expression
-            = l:atom() _ "*" _ r:product() { Expression::BinaryExpression(BinOp::Times, Box::new(l), Box::new(r)) }
-            / l:atom() _ "/" _ r:product() { Expression::BinaryExpression(BinOp::Divide, Box::new(l), Box::new(r)) }
-            / atom()
-
+            }
         rule atom() -> Expression
             = number()
             / "(" e:expression() ")" { e }
