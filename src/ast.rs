@@ -19,12 +19,14 @@ pub enum Expression {
     IdentReference(Ident),
     Input,
     Call(Box<Expression>, Vec<Box<Expression>>),
+    UnaryExpression(UnOp, Box<Expression>),
+    Alloc(Box<Expression>)
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Statement {
     VarDecl(Vec<Ident>), // TODO: Intern strings?
-    Assign(Ident, Expression),
+    Assign(Expression, Expression),
     If {
         cond: Expression,
         then: Option<StatementList>,

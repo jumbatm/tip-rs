@@ -1,4 +1,4 @@
-use crate::ast::{BinOp, Expression, Function, Ident, Program, Statement, StatementList};
+use crate::ast::{BinOp, Expression, Function, Ident, Program, Statement, StatementList, UnOp};
 use peg;
 
 peg::parser! {
@@ -21,7 +21,7 @@ peg::parser! {
             / "break" { Statement::Break }
             / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
             / "output" ws() e:expression() { Statement::Output(e) }
-            / i:ident() "=" e:expression() { Statement::Assign(i, e) }
+            / i:expression() _ "=" _ e:expression() { Statement::Assign(i, e) }
 
         pub rule program() -> Program
             = fun:(_ f:function() _ { f })+ { Program { functions: fun }}
@@ -369,6 +369,17 @@ mod tests {
                 )),
                 vec![]
             ),)
+        );
+    }
+
+    #[test]
+    fn test_assign() {
+        assert_eq!(
+            tip_parser::statement("n = 42;"),
+            Ok(Statement::Assign(
+                Expression::IdentReference(Ident("n".to_string())),
+                Expression::Number(42)
+            ))
         );
     }
 }
