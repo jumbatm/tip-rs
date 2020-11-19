@@ -15,7 +15,7 @@ pub enum BinOp {
 pub enum Expression {
     Number(i64),
     BinaryExpression(BinOp, Box<Expression>, Box<Expression>),
-    Ident(Ident),
+    IdentReference(Ident),
     Input,
 }
 
