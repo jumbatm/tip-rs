@@ -50,6 +50,8 @@ peg::parser! {
                 --
                 l:@ _ "==" _ r:(@) { Expression::BinaryExpression(BinOp::CompareEq,  Box::new(l), Box::new(r)) }
                 --
+                f:@ _ "(" _ e:( _ e:expression() _ { e }) ** "," _ ")" { Expression::Call(Box::new(f), e.into_iter().map(|e| Box::new(e)).collect())}
+                --
                 a:atom() { a }
 
             }
@@ -328,6 +330,45 @@ mod tests {
                     }
                 ]
             })
+        );
+    }
+
+    #[test]
+    fn test_call() {
+        assert_eq!(
+            tip_parser::expression("f()"),
+            Ok(Expression::Call(
+                Box::new(Expression::IdentReference(Ident("f".to_string()))),
+                vec![],
+            ))
+        );
+        assert_eq!(
+            tip_parser::expression("f(a, b, c)"),
+            Ok(Expression::Call(
+                Box::new(Expression::IdentReference(Ident("f".to_string()))),
+                ["a", "b", "c"]
+                    .iter()
+                    .map(|x| Box::new(Expression::IdentReference(Ident(x.to_string()))))
+                    .collect()
+            ))
+        );
+        assert_eq!(
+            tip_parser::expression("(f)()"),
+            Ok(Expression::Call(
+                Box::new(Expression::IdentReference(Ident("f".to_string()))),
+                vec![],
+            ))
+        );
+
+        assert_eq!(
+            tip_parser::expression("f()()"),
+            Ok(Expression::Call(
+                Box::new(Expression::Call(
+                    Box::new(Expression::IdentReference(Ident("f".to_string()))),
+                    vec![],
+                )),
+                vec![]
+            ),)
         );
     }
 }

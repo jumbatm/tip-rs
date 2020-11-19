@@ -18,6 +18,7 @@ pub enum Expression {
     BinaryExpression(BinOp, Box<Expression>, Box<Expression>),
     IdentReference(Ident),
     Input,
+    Call(Box<Expression>, Vec<Box<Expression>>),
 }
 
 #[derive(Debug, PartialEq, Eq)]
