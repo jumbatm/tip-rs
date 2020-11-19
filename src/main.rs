@@ -9,6 +9,8 @@ struct Opt {
     files: Vec<PathBuf>,
     #[structopt(short, long)]
     dump_ast: bool,
+    #[structopt(short, long)]
+    verbose: bool,
 }
 
 fn main() {
@@ -19,11 +21,16 @@ fn main() {
             .into_iter()
             .fold(String::new(), |mut acc, current| {
                 let src = std::fs::read_to_string(current).unwrap();
-                acc.push('\n');
                 acc.push_str(&src);
+                acc.push('\n');
                 acc
             });
-        dbg!(&src);
+        if opt.verbose {
+            println!("Src is");
+            for (idx, line) in src.lines().enumerate() {
+                println!("{}\t| {}", idx+1, line);
+            }
+        }
         let ast = tip_parser::parse(src);
         println!("{:#?}", ast);
     }
