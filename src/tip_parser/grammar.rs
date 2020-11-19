@@ -6,7 +6,7 @@ peg::parser! {
     /// to make them testable.
     pub(crate) grammar tip_parser() for str {
 
-        rule ws() = [' ' | '\n' | '\t']+
+        rule ws() = [' ' | '\n' | '\t' | '\r' ]+
         rule _() = ws()*
 
         rule statement_list() -> StatementList
