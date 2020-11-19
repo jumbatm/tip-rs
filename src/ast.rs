@@ -9,6 +9,7 @@ pub enum BinOp {
     Minus,
     Times,
     Divide,
+    CompareEq,
 }
 
 #[derive(Debug, PartialEq, Eq)]

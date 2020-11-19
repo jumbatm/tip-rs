@@ -48,6 +48,8 @@ peg::parser! {
                 l:@ _ "*" _ r:(@)  { Expression::BinaryExpression(BinOp::Times , Box::new(l), Box::new(r)) }
                 l:@ _ "/" _ r:(@)  { Expression::BinaryExpression(BinOp::Divide , Box::new(l), Box::new(r)) }
                 --
+                l:@ _ "==" _ r:(@) { Expression::BinaryExpression(BinOp::CompareEq,  Box::new(l), Box::new(r)) }
+                --
                 a:atom() { a }
 
             }
