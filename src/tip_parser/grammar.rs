@@ -4,7 +4,7 @@ use peg;
 peg::parser! {
     /// PEG grammar for TIP. Note that we wrap this parser in the `TipParser` struct. Most rules are `pub`
     /// to make them testable.
-    grammar tip_parser() for str {
+    pub(crate) grammar tip_parser() for str {
 
         rule ws() = [' ' | '\n' | '\t']+
         rule _() = ws()*
