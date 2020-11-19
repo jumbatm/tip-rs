@@ -33,5 +33,18 @@ pub enum Statement {
         then: Option<StatementList>,
     },
     Break,
+    Output(Expression),
     Return(Option<Expression>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Function {
+    pub name: Ident,
+    pub params: Vec<Ident>,
+    pub body: StatementList,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Program {
+    pub functions: Vec<Function>,
 }

@@ -1,4 +1,4 @@
-use crate::ast::{BinOp, Expression, Ident, Statement, StatementList};
+use crate::ast::{BinOp, Expression, Function, Ident, Program, Statement, StatementList};
 use peg;
 
 peg::parser! {
@@ -20,7 +20,14 @@ peg::parser! {
             }
             / "break" { Statement::Break }
             / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
+            / "output" ws() e:expression() { Statement::Output(e) }
             / i:ident() "=" e:expression() { Statement::Assign(i, e) }
+
+        pub rule program() -> Program
+            = fun:(_ f:function() _ { f })+ { Program { functions: fun }}
+
+        pub rule function() -> Function
+            = name:ident() _ "(" params:(i:(_ i:ident() _ { i }) ** "," { i })")" _ "{" _ body:statement_list()? _ "}" { Function { name, params, body: body.unwrap_or(vec![]) }}
 
         pub rule statement() -> Statement
             = s:statement_contents() ";" { s }
@@ -46,7 +53,7 @@ peg::parser! {
             }
         pub rule atom() -> Expression
             = number()
-            / id:ident() { Expression::Ident(id) }
+            / id:ident() { Expression::IdentReference(id) }
             / "(" e:expression() ")" { e }
 
         pub rule number() -> Expression
@@ -260,6 +267,64 @@ mod tests {
             Ok(Statement::While {
                 cond: Expression::Number(1),
                 then: Some(vec![Statement::VarDecl(vec![Ident("x".to_string())])])
+            })
+        );
+    }
+
+    #[test]
+    fn test_output() {
+        assert_eq!(
+            tip_parser::statement("output x;"),
+            Ok(Statement::Output(Expression::IdentReference(Ident(
+                "x".to_string()
+            ))))
+        );
+    }
+
+    #[test]
+    fn test_function() {
+        assert_eq!(
+            tip_parser::function("f() { return 0; }"),
+            Ok(Function {
+                name: Ident("f".to_string()),
+                params: vec![],
+                body: vec![Statement::Return(Some(Expression::Number(0)))],
+            })
+        );
+        assert_eq!(
+            tip_parser::function("g(x, y, z) { return 1; }"),
+            Ok(Function {
+                name: Ident("g".to_string()),
+                params: vec![
+                    Ident("x".to_string()),
+                    Ident("y".to_string()),
+                    Ident("z".to_string())
+                ],
+                body: vec![Statement::Return(Some(Expression::Number(1)))],
+            })
+        );
+    }
+    #[test]
+    fn test_program() {
+        assert_eq!(
+            tip_parser::program("f() { return 0; } g(x, y, z) { return 1; }"),
+            Ok(Program {
+                functions: vec![
+                    Function {
+                        params: vec![],
+                        name: Ident("f".to_string()),
+                        body: vec![Statement::Return(Some(Expression::Number(0)))],
+                    },
+                    Function {
+                        name: Ident("g".to_string()),
+                        params: vec![
+                            Ident("x".to_string()),
+                            Ident("y".to_string()),
+                            Ident("z".to_string())
+                        ],
+                        body: vec![Statement::Return(Some(Expression::Number(1)))],
+                    }
+                ]
             })
         );
     }
