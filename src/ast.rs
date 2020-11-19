@@ -10,6 +10,14 @@ pub enum BinOp {
     Times,
     Divide,
     CompareEq,
+    CompareGt,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum UnOp {
+    Negate,
+    AddressOf,
+    Dereference,
 }
 
 #[derive(Debug, PartialEq, Eq)]

@@ -49,8 +49,22 @@ peg::parser! {
                 l:@ _ "/" _ r:(@)  { Expression::BinaryExpression(BinOp::Divide , Box::new(l), Box::new(r)) }
                 --
                 l:@ _ "==" _ r:(@) { Expression::BinaryExpression(BinOp::CompareEq,  Box::new(l), Box::new(r)) }
+                l:@ _ ">" _ r:(@) { Expression::BinaryExpression(BinOp::CompareGt,  Box::new(l), Box::new(r)) }
                 --
                 f:@ _ "(" _ e:( _ e:expression() _ { e }) ** "," _ ")" { Expression::Call(Box::new(f), e.into_iter().map(|e| Box::new(e)).collect())}
+                --
+                op:$(['&' | '*' | '-']) _ e:@ {
+                    Expression::UnaryExpression(
+                        match op {
+                            "&" => UnOp::AddressOf,
+                            "*" => UnOp::Dereference,
+                            "-" => UnOp::Negate,
+                            _ => unreachable!()
+                        },
+                        Box::new(e))
+                }
+                --
+                "alloc" ws() e:@ { Expression::Alloc(Box::new(e)) }
                 --
                 a:atom() { a }
 
@@ -379,6 +393,19 @@ mod tests {
             Ok(Statement::Assign(
                 Expression::IdentReference(Ident("n".to_string())),
                 Expression::Number(42)
+            ))
+        );
+    }
+    #[test]
+    fn test_pointers() {
+        assert_eq!(
+            tip_parser::expression("f(*x)"),
+            Ok(Expression::Call(
+                Box::new(Expression::IdentReference(Ident("f".to_string()))),
+                vec![Box::new(Expression::UnaryExpression(
+                    UnOp::Dereference,
+                    Box::new(Expression::IdentReference(Ident("x".to_string())))
+                ))]
             ))
         );
     }
