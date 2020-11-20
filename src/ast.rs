@@ -51,6 +51,7 @@ pub enum Statement {
     Return(Option<Expression>),
     Error(Expression),
     ExpressionStatement(Expression),
+    Block(StatementList),
 }
 
 #[derive(Debug, PartialEq, Eq)]

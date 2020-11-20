@@ -59,6 +59,7 @@ peg::parser! {
             / _ "if" _ "(" _ cond:expression() _")" _ then:(t:statement()? { t.map(|t| vec![t]) }) _ otherwise:(_ "else" _ s:statement()? { s.map(|s| vec![s] ).unwrap_or(vec![]) })? {
                 Statement::If { cond, then, otherwise }
             }
+            / "{" l:statement_list() "}" { Statement::Block(l) }
 
         pub rule expression() -> Expression
             = precedence! {
