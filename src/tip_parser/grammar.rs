@@ -6,8 +6,26 @@ peg::parser! {
     /// to make them testable.
     pub(crate) grammar tip_parser() for str {
 
+        rule block_comment_content()
+            = (!"*/" [_])
+
+        rule line_comment_content()
+            = (!"\n" [_])
+
+        // A bit delicate -- perhaps implement a custom iterator instead that skips comments?
+        // Would ruin line numbers though
+        pub rule comment()
+            = "//" line_comment_content()*
+            / "/*" block_comment_content()* "*/"
+
         rule ws() = [' ' | '\n' | '\t' | '\r' ]+
-        rule _() = ws()*
+
+        rule blank()
+            = ws()
+            / comment()
+
+        rule _()
+            = blank()*
 
         rule statement_list() -> StatementList
             = stmt:(_ s:statement() _ { s })+ { stmt }
@@ -31,13 +49,13 @@ peg::parser! {
             = name:ident() _ "(" params:(i:(_ i:ident() _ { i }) ** "," { i })")" _ "{" _ body:statement_list()? _ "}" { Function { name, params, body: body.unwrap_or(vec![]) }}
 
         pub rule statement() -> Statement
-            = s:statement_contents() ";" { s }
-            / "while" _ "(" _ cond: expression() _ ")" _ "{" _ then:statement_list()? _ "}" { Statement::While { cond, then }}
-            / "while" _ "(" _ cond: expression() _ ")" _ then: statement()? { Statement::While { cond, then: then.map(|t| vec![t]) }}
-            / "if" _ "(" _ cond:expression() _")" _ "{" _ then:statement_list()? _ "}" otherwise:(_ "else" _ "{" _ s:statement_list()? _ "}" { s.unwrap_or(vec![]) })? {
+            = _ s:statement_contents() _ ";" _ { s }
+            / _ "while" _ "(" _ cond: expression() _ ")" _ "{" _ then:statement_list()? _ "}" { Statement::While { cond, then }}
+            / _ "while" _ "(" _ cond: expression() _ ")" _ then: statement()? { Statement::While { cond, then: then.map(|t| vec![t]) }}
+            / _ "if" _ "(" _ cond:expression() _")" _ "{" _ then:statement_list()? _ "}" otherwise:(_ "else" _ "{" _ s:statement_list()? _ "}" { s.unwrap_or(vec![]) })? {
                 Statement::If { cond, then, otherwise }
             }
-            / "if" _ "(" _ cond:expression() _")" _ then:(t:statement()? { t.map(|t| vec![t]) }) _ otherwise:(_ "else" _ s:statement()? { s.map(|s| vec![s] ).unwrap_or(vec![]) })? {
+            / _ "if" _ "(" _ cond:expression() _")" _ then:(t:statement()? { t.map(|t| vec![t]) }) _ otherwise:(_ "else" _ s:statement()? { s.map(|s| vec![s] ).unwrap_or(vec![]) })? {
                 Statement::If { cond, then, otherwise }
             }
 
@@ -409,5 +427,28 @@ mod tests {
                 ))]
             ))
         );
+    }
+
+    #[test]
+    fn test_comment() {
+        assert!(tip_parser::comment("// This is a comment").is_ok());
+        assert!(tip_parser::comment("/* This is a block comment */").is_ok());
+    }
+
+    #[test]
+    fn test_comment_in_program() {
+        let src = "\
+g() { }
+f() {
+    g();
+    // This is a line comment
+    g();
+}
+/* This is a block comment */
+h() /* This is a block comment in an awkward place */ { }\
+        ";
+        let result = tip_parser::program(src);
+        dbg!(&result);
+        assert!(result.is_ok());
     }
 }
