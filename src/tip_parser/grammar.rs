@@ -22,6 +22,7 @@ peg::parser! {
             / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
             / "output" ws() e:expression() { Statement::Output(e) }
             / i:expression() _ "=" _ e:expression() { Statement::Assign(i, e) }
+            / e:expression() { Statement::ExpressionStatement(e) }
 
         pub rule program() -> Program
             = fun:(_ f:function() _ { f })+ { Program { functions: fun }}

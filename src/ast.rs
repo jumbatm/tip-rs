@@ -47,6 +47,7 @@ pub enum Statement {
     Break,
     Output(Expression),
     Return(Option<Expression>),
+    ExpressionStatement(Expression),
 }
 
 #[derive(Debug, PartialEq, Eq)]
