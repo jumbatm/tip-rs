@@ -85,13 +85,19 @@ peg::parser! {
                 --
                 "alloc" ws() e:@ { Expression::Alloc(Box::new(e)) }
                 --
+                e:@ i:("." i:ident() { i })+ { Expression::Projection(Box::new(e), i) }
+                --
                 a:atom() { a }
 
             }
         pub rule atom() -> Expression
             = number()
             / id:ident() { Expression::IdentReference(id) }
+            / r:rec() { r }
             / "(" e:expression() ")" { e }
+
+        pub rule rec() -> Expression
+            = "{" fields:(_ i:ident() _ ":" _ e:expression() _ { (i, e) }) ** "," "}" { Expression::Record(fields) }
 
         pub rule number() -> Expression
             = n:$(['0'..='9']+) { Expression::Number(n.parse().unwrap()) }

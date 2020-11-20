@@ -28,7 +28,9 @@ pub enum Expression {
     Input,
     Call(Box<Expression>, Vec<Box<Expression>>),
     UnaryExpression(UnOp, Box<Expression>),
-    Alloc(Box<Expression>)
+    Alloc(Box<Expression>),
+    Record(Vec<(Ident, Expression)>),
+    Projection(Box<Expression>, Vec<Ident>)
 }
 
 #[derive(Debug, PartialEq, Eq)]
