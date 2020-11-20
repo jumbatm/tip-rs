@@ -39,6 +39,7 @@ peg::parser! {
             / "break" { Statement::Break }
             / "return" e:(ws() e:expression() { e })?  { Statement::Return(e) }
             / "output" ws() e:expression() { Statement::Output(e) }
+            / "error" ws() e:expression() { Statement::Error(e) }
             / i:expression() _ "=" _ e:expression() { Statement::Assign(i, e) }
             / e:expression() { Statement::ExpressionStatement(e) }
 
@@ -456,5 +457,9 @@ h() /* This is a block comment in an awkward place */ { }\
         let result = tip_parser::program(src);
         dbg!(&result);
         assert!(result.is_ok());
+    }
+    #[test]
+    fn parse_error() {
+        assert_eq!(tip_parser::statement("error 1;"), Ok(Statement::Error(Expression::Number(1))));
     }
 }

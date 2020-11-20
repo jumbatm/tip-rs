@@ -49,6 +49,7 @@ pub enum Statement {
     Break,
     Output(Expression),
     Return(Option<Expression>),
+    Error(Expression),
     ExpressionStatement(Expression),
 }
 
